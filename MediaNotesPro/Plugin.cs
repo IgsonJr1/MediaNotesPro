@@ -36,8 +36,4 @@ namespace MediaNotesPro
             };
         }
     }
-
-    public class PluginConfiguration : BasePluginConfiguration
-    {
-    }
 }
