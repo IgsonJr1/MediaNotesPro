@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.IO;
+using System.Linq;
 
 namespace MediaNotesPro.Api;
 
@@ -9,12 +10,18 @@ namespace MediaNotesPro.Api;
 [Authorize]
 public class NotesController : ControllerBase
 {
-    // Caminho onde as notas serão salvas (dentro da pasta de dados do Jellyfin)
     private string GetNotePath(string itemId) 
     {
+        // Pega o ID do usuário logado
         var userId = User.Claims.FirstOrDefault(c => c.Type == "InternalId")?.Value ?? "default";
+        
+        // Cria uma pasta chamada MediaNotesData dentro da pasta do Jellyfin
         var folder = Path.Combine("plugins", "MediaNotesData");
-        Directory.CreateDirectory(folder);
+        if (!Directory.Exists(folder))
+        {
+            Directory.CreateDirectory(folder);
+        }
+        
         return Path.Combine(folder, $"{userId}_{itemId}.md");
     }
 
@@ -22,16 +29,26 @@ public class NotesController : ControllerBase
     public IActionResult GetNote([FromRoute] string itemId)
     {
         var path = GetNotePath(itemId);
-        if (!File.Exists(path)) return Ok(new { text = "" });
-        return Ok(new { text = File.ReadAllText(path) });
+        
+        // Usamos System.IO.File para evitar conflito com o controlador
+        if (!System.IO.File.Exists(path)) 
+        {
+            return Ok(new { text = "" });
+        }
+        
+        return Ok(new { text = System.IO.File.ReadAllText(path) });
     }
 
     [HttpPost("{itemId}")]
     public IActionResult SaveNote([FromRoute] string itemId, [FromBody] NoteRequest request)
     {
-        System.IO.File.WriteAllText(GetNotePath(itemId), request.Text);
+        var path = GetNotePath(itemId);
+        System.IO.File.WriteAllText(path, request.Text);
         return NoContent();
     }
 }
 
-public class NoteRequest { public string Text { get; set; } = ""; }
+public class NoteRequest 
+{ 
+    public string Text { get; set; } = ""; 
+}
