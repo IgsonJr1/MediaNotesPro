@@ -1,8 +1,8 @@
 using MediaBrowser.Model.Plugins;
 
-namespace MediaNotesPro;
-
-public class PluginConfiguration : BasePluginConfiguration
+namespace MediaNotesPro
 {
-    // Você pode adicionar opções aqui no futuro, como "Pasta de salvamento personalizada"
+    public class PluginConfiguration : BasePluginConfiguration
+    {
+    }
 }
