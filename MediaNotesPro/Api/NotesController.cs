@@ -7,7 +7,14 @@ namespace MediaNotesPro.Api;
 
 [ApiController]
 [Route("MediaNotes")]
-[Authorize]
+public class NotesController : ControllerBase
+{
+    [HttpPost("{itemId}")]
+    public ActionResult SaveNote([FromRoute] string itemId, [FromBody] NoteRequest request)
+    {
+        // Seu código de salvar aqui...
+    }
+}
 public class NotesController : ControllerBase
 {
     private string GetNotePath(string itemId) 
