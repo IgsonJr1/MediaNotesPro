@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head><title>Media Notes Pro</title></head>
+<body>
+    <div id="MediaNotesPage" data-role="page" class="page type-interior pluginConfigurationPage">
+        <div data-role="content">
+            <div class="content-primary">
+                <h2>📝 Notas da Mídia</h2>
+                <div class="inputContainer">
+                    <textarea id="noteEditor" is="emby-textarea" style="height:250px; font-family:monospace;"></textarea>
+                </div>
+                <button id="saveBtn" is="emby-button" type="button" class="raised button-submit block">Salvar</button>
+                <button id="exportBtn" is="emby-button" type="button" class="raised block">Exportar .TXT</button>
+            </div>
+        </div>
+
+        <script>
+            const MediaNotes = {
+                save: function() {
+                    const itemId = new URLSearchParams(window.location.search).get('itemId');
+                    const text = document.getElementById('noteEditor').value;
+                    
+                    ApiClient.fetch({
+                        url: ApiClient.getUrl('MediaNotes/' + itemId),
+                        type: 'POST',
+                        data: JSON.stringify({ Text: text }),
+                        contentType: 'application/json'
+                    }).then(() => Dashboard.alert('Salvo!'));
+                }
+            };
+
+            document.getElementById('saveBtn').addEventListener('click', MediaNotes.save);
+        </script>
+    </div>
+</body>
+</html>
