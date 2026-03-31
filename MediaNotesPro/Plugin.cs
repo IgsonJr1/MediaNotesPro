@@ -23,18 +23,17 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
     public static Plugin? Instance { get; private set; }
 
     public IEnumerable<PluginPageInfo> GetPages()
+{
+    return new[]
     {
-        return new[]
+        new PluginPageInfo
         {
-            new PluginPageInfo
-            {
-                Name = "medianotes",
-                EmbeddedResourcePath = "MediaNotesPro.Pages.notespage.html",
-                EnableInMainMenu = true,
-                MenuSection = "server",
-                MenuIcon = "edit_note",
-                DisplayName = "Media Notes Pro"
-            }
-        };
-    }
+            Name = "medianotes",
+            EmbeddedResourcePath = "MediaNotesPro.Pages.notespage.html",
+            EnableInMainMenu = true,
+            MenuSection = "userinfo", // Mudamos para ser mais visível no Mobile
+            MenuIcon = "edit_note",
+            DisplayName = "Media Notes Pro"
+        }
+    };
 }
