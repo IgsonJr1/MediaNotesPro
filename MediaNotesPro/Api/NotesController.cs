@@ -19,21 +19,18 @@ namespace MediaNotesPro.Api
             _logger = logger;
         }
 
-        // Carregar Notas: GET /MediaNotes/{userId}/{mediaName}
-        [HttpGet("{userId}/{mediaName}")]
-        public ActionResult GetNotes([FromRoute] string userId, [FromRoute] string mediaName)
+        [HttpGet("{userName}/{mediaName}")]
+        public ActionResult GetNotes([FromRoute] string userName, [FromRoute] string mediaName)
         {
             try
             {
+                var safeUserName = string.IsNullOrWhiteSpace(userName) || userName == "undefined" ? "Geral" : userName;
                 var programData = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
-                var userPath = Path.Combine(programData, "Jellyfin", "Server", "data", "MediaNotesData", userId);
+                var userPath = Path.Combine(programData, "Jellyfin", "Server", "data", "MediaNotesData", safeUserName);
                 var filePath = Path.Combine(userPath, $"{mediaName}.txt");
 
-                if (!System.IO.File.Exists(filePath)) 
-                    return Ok(new { text = "" });
-
-                var content = System.IO.File.ReadAllText(filePath);
-                return Ok(new { text = content });
+                if (!System.IO.File.Exists(filePath)) return Ok(new { text = "" });
+                return Ok(new { text = System.IO.File.ReadAllText(filePath) });
             }
             catch (Exception ex)
             {
@@ -41,28 +38,24 @@ namespace MediaNotesPro.Api
             }
         }
 
-        // Salvar Notas: POST /MediaNotes/{userId}/{mediaName}
-        [HttpPost("{userId}/{mediaName}")]
-        public ActionResult SaveNote([FromRoute] string userId, [FromRoute] string mediaName, [FromBody] NoteRequest request)
+        [HttpPost("{userName}/{mediaName}")]
+        public ActionResult SaveNote([FromRoute] string userName, [FromRoute] string mediaName, [FromBody] NoteRequest request)
         {
             try
             {
+                var safeUserName = string.IsNullOrWhiteSpace(userName) || userName == "undefined" ? "Geral" : userName;
                 var programData = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
-                var userPath = Path.Combine(programData, "Jellyfin", "Server", "data", "MediaNotesData", userId);
+                var userPath = Path.Combine(programData, "Jellyfin", "Server", "data", "MediaNotesData", safeUserName);
 
-                if (!Directory.Exists(userPath)) 
-                    Directory.CreateDirectory(userPath);
-
+                if (!Directory.Exists(userPath)) Directory.CreateDirectory(userPath);
                 var filePath = Path.Combine(userPath, $"{mediaName}.txt");
 
-                // Salva/Sobrescreve o arquivo com o conteúdo atual da área de texto
                 System.IO.File.WriteAllText(filePath, request.Text);
-
-                return Ok(new { message = "Sincronizado com sucesso!" });
+                return Ok(new { message = "Sincronizado!" });
             }
             catch (Exception ex)
             {
-                _logger.LogError("Erro ao salvar nota: {0}", ex.Message);
+                _logger.LogError("Erro ao salvar: {0}", ex.Message);
                 return StatusCode(500, ex.Message);
             }
         }
@@ -71,5 +64,6 @@ namespace MediaNotesPro.Api
     public class NoteRequest
     {
         public string Text { get; set; }
+
     }
 }
