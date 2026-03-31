@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
 using MediaBrowser.Controller.Library;
 using Microsoft.Extensions.Logging;
@@ -30,7 +29,8 @@ namespace MediaNotesPro.Api
                 var userPath = Path.Combine(programData, "Jellyfin", "Server", "data", "MediaNotesData", userId);
                 var filePath = Path.Combine(userPath, $"{mediaName}.txt");
 
-                if (!System.IO.File.Exists(filePath)) return Ok(new { text = "" });
+                if (!System.IO.File.Exists(filePath)) 
+                    return Ok(new { text = "" });
 
                 var content = System.IO.File.ReadAllText(filePath);
                 return Ok(new { text = content });
@@ -50,18 +50,19 @@ namespace MediaNotesPro.Api
                 var programData = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
                 var userPath = Path.Combine(programData, "Jellyfin", "Server", "data", "MediaNotesData", userId);
 
-                if (!Directory.Exists(userPath)) Directory.CreateDirectory(userPath);
+                if (!Directory.Exists(userPath)) 
+                    Directory.CreateDirectory(userPath);
 
                 var filePath = Path.Combine(userPath, $"{mediaName}.txt");
 
-                // Sobrescreve o arquivo com o conteúdo total (edição em tempo real)
+                // Salva/Sobrescreve o arquivo com o conteúdo atual da área de texto
                 System.IO.File.WriteAllText(filePath, request.Text);
 
-                return Ok(new { message = "Sincronizado!" });
+                return Ok(new { message = "Sincronizado com sucesso!" });
             }
             catch (Exception ex)
             {
-                _logger.LogError("Erro: {0}", ex.Message);
+                _logger.LogError("Erro ao salvar nota: {0}", ex.Message);
                 return StatusCode(500, ex.Message);
             }
         }
