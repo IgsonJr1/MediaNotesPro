@@ -1,61 +1,51 @@
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
+using System;
 using System.IO;
-using System.Linq;
+using Microsoft.AspNetCore.Mvc;
+using MediaBrowser.Controller.Library;
+using Microsoft.Extensions.Logging;
 
-namespace MediaNotesPro.Api;
-
-[ApiController]
-[Route("MediaNotes")]
-public class NotesController : ControllerBase
+namespace MediaNotesPro.Api
 {
-    [HttpPost("{itemId}")]
-    public ActionResult SaveNote([FromRoute] string itemId, [FromBody] NoteRequest request)
+    [ApiController]
+    [Route("MediaNotes")]
+    public class NotesController : ControllerBase
     {
-        // Seu código de salvar aqui...
-    }
-}
-public class NotesController : ControllerBase
-{
-    private string GetNotePath(string itemId) 
-    {
-        // Pega o ID do usuário logado
-        var userId = User.Claims.FirstOrDefault(c => c.Type == "InternalId")?.Value ?? "default";
-        
-        // Cria uma pasta chamada MediaNotesData dentro da pasta do Jellyfin
-        var folder = Path.Combine("plugins", "MediaNotesData");
-        if (!Directory.Exists(folder))
+        private readonly ILibraryManager _libraryManager;
+        private readonly ILogger<NotesController> _logger;
+
+        public NotesController(ILibraryManager libraryManager, ILogger<NotesController> logger)
         {
-            Directory.CreateDirectory(folder);
+            _libraryManager = libraryManager;
+            _logger = logger;
         }
-        
-        return Path.Combine(folder, $"{userId}_{itemId}.md");
-    }
 
-    [HttpGet("{itemId}")]
-    public IActionResult GetNote([FromRoute] string itemId)
-    {
-        var path = GetNotePath(itemId);
-        
-        // Usamos System.IO.File para evitar conflito com o controlador
-        if (!System.IO.File.Exists(path)) 
+        // Rota para Salvar: /MediaNotes/{itemId}
+        [HttpPost("{itemId}")]
+        public ActionResult SaveNote([FromRoute] string itemId, [FromBody] NoteRequest request)
         {
-            return Ok(new { text = "" });
+            try
+            {
+                // Caminho onde as notas serão salvas (Pasta do Plugin)
+                var configPath = Path.Combine(AppContext.BaseDirectory, "plugins", "MediaNotesData");
+                if (!Directory.Exists(configPath)) Directory.CreateDirectory(configPath);
+
+                var filePath = Path.Combine(configPath, $"{itemId}.txt");
+
+                // Adiciona a nova nota ao final do arquivo (Append)
+                System.IO.File.AppendAllText(filePath, request.Text + Environment.NewLine);
+
+                return Ok(new { message = "Nota salva com sucesso!" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Erro ao salvar nota: {0}", ex.Message);
+                return StatusCode(500, "Erro interno ao salvar arquivo.");
+            }
         }
-        
-        return Ok(new { text = System.IO.File.ReadAllText(path) });
     }
 
-    [HttpPost("{itemId}")]
-    public IActionResult SaveNote([FromRoute] string itemId, [FromBody] NoteRequest request)
+    public class NoteRequest
     {
-        var path = GetNotePath(itemId);
-        System.IO.File.WriteAllText(path, request.Text);
-        return NoContent();
+        public string Text { get; set; }
     }
-}
-
-public class NoteRequest 
-{ 
-    public string Text { get; set; } = ""; 
 }
