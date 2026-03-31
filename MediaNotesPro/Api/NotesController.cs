@@ -1,9 +1,9 @@
 using System;
 using System.IO;
+using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
 using MediaBrowser.Controller.Library;
 using Microsoft.Extensions.Logging;
-using MediaBrowser.Model.Serialization;
 
 namespace MediaNotesPro.Api
 {
@@ -20,47 +20,50 @@ namespace MediaNotesPro.Api
             _logger = logger;
         }
 
-        // Rota para Salvar: POST /MediaNotes/{itemId}
-        [HttpPost("{itemId}")]
-        public ActionResult SaveNote([FromRoute] string itemId, [FromBody] NoteRequest request)
+        // Carregar Notas: GET /MediaNotes/{userId}/{mediaName}
+        [HttpGet("{userId}/{mediaName}")]
+        public ActionResult GetNotes([FromRoute] string userId, [FromRoute] string mediaName)
         {
             try
             {
-                // Define o caminho em C:\ProgramData\Jellyfin\Server\data\MediaNotesData
-                // Este é o local mais seguro para evitar Erro 500 de permissão no Windows
                 var programData = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
-                var configPath = Path.Combine(programData, "Jellyfin", "Server", "data", "MediaNotesData");
+                var userPath = Path.Combine(programData, "Jellyfin", "Server", "data", "MediaNotesData", userId);
+                var filePath = Path.Combine(userPath, $"{mediaName}.txt");
 
-                if (!Directory.Exists(configPath))
-                {
-                    Directory.CreateDirectory(configPath);
-                }
+                if (!System.IO.File.Exists(filePath)) return Ok(new { text = "" });
 
-                var filePath = Path.Combine(configPath, $"{itemId}.txt");
-
-                // Formata a linha com quebra de linha no final para o próximo "Append"
-                var contentToSave = request.Text + Environment.NewLine;
-
-                // AppendAllText cria o arquivo se não existir e adiciona ao final se já existir
-                System.IO.File.AppendAllText(filePath, contentToSave);
-
-                _logger.LogInformation("Nota salva com sucesso para o item {0}", itemId);
-                
-                return Ok(new { message = "Nota registrada!" });
+                var content = System.IO.File.ReadAllText(filePath);
+                return Ok(new { text = content });
             }
             catch (Exception ex)
             {
-                _logger.LogError("Erro ao salvar nota: {0}", ex.ToString());
-                // Retornamos o erro detalhado para ajudar no diagnóstico se o 500 persistir
-                return StatusCode(500, $"Erro no Servidor: {ex.Message}");
+                return StatusCode(500, ex.Message);
             }
         }
 
-        // Rota opcional para verificar se o plugin responde (Teste de URL)
-        [HttpGet("ping")]
-        public ActionResult Ping()
+        // Salvar Notas: POST /MediaNotes/{userId}/{mediaName}
+        [HttpPost("{userId}/{mediaName}")]
+        public ActionResult SaveNote([FromRoute] string userId, [FromRoute] string mediaName, [FromBody] NoteRequest request)
         {
-            return Ok("Plugin MediaNotesPro está Online!");
+            try
+            {
+                var programData = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
+                var userPath = Path.Combine(programData, "Jellyfin", "Server", "data", "MediaNotesData", userId);
+
+                if (!Directory.Exists(userPath)) Directory.CreateDirectory(userPath);
+
+                var filePath = Path.Combine(userPath, $"{mediaName}.txt");
+
+                // Sobrescreve o arquivo com o conteúdo total (edição em tempo real)
+                System.IO.File.WriteAllText(filePath, request.Text);
+
+                return Ok(new { message = "Sincronizado!" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Erro: {0}", ex.Message);
+                return StatusCode(500, ex.Message);
+            }
         }
     }
 
