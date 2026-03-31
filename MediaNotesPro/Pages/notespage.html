@@ -1,36 +1,84 @@
 <!DOCTYPE html>
 <html>
-<head><title>Media Notes Pro</title></head>
+<head>
+    <meta charset="utf-8">
+    <title>Media Notes Pro</title>
+    <style>
+        body { color: #fff; font-family: 'Roboto', sans-serif; padding: 20px; background: #101010; }
+        .notes-container { max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; gap: 15px; }
+        h2 { display: flex; align-items: center; gap: 10px; color: #00a4dc; }
+        textarea { 
+            width: 100%; height: 300px; background: #1c1c1c; border: 1px solid #333; 
+            color: #eee; padding: 15px; border-radius: 5px; font-size: 16px; resize: vertical;
+        }
+        .btn { 
+            padding: 12px 20px; border: none; border-radius: 5px; cursor: pointer; 
+            font-weight: bold; transition: 0.3s; font-size: 14px;
+        }
+        .btn-primary { background: #00a4dc; color: white; }
+        .btn-primary:hover { background: #0084b0; }
+        .btn-secondary { background: #333; color: #ccc; margin-top: 10px; }
+        .status { font-size: 12px; color: #888; }
+    </style>
+</head>
 <body>
-    <div id="MediaNotesPage" data-role="page" class="page type-interior pluginConfigurationPage">
-        <div data-role="content">
-            <div class="content-primary">
-                <h2>📝 Notas da Mídia</h2>
-                <div class="inputContainer">
-                    <textarea id="noteEditor" is="emby-textarea" style="height:250px; font-family:monospace;"></textarea>
-                </div>
-                <button id="saveBtn" is="emby-button" type="button" class="raised button-submit block">Salvar</button>
-                <button id="exportBtn" is="emby-button" type="button" class="raised block">Exportar .TXT</button>
-            </div>
-        </div>
-
-        <script>
-            const MediaNotes = {
-                save: function() {
-                    const itemId = new URLSearchParams(window.location.search).get('itemId');
-                    const text = document.getElementById('noteEditor').value;
-                    
-                    ApiClient.fetch({
-                        url: ApiClient.getUrl('MediaNotes/' + itemId),
-                        type: 'POST',
-                        data: JSON.stringify({ Text: text }),
-                        contentType: 'application/json'
-                    }).then(() => Dashboard.alert('Salvo!'));
-                }
-            };
-
-            document.getElementById('saveBtn').addEventListener('click', MediaNotes.save);
-        </script>
+    <div class="notes-container">
+        <h2><span class="material-icons">edit_note</span> Notas da Mídia</h2>
+        <p id="item-info" style="color: #aaa;">Selecione uma mídia para anotar...</p>
+        
+        <textarea id="note-text" placeholder="Escreva suas anotações aqui..."></textarea>
+        
+        <button id="save-btn" class="btn btn-primary">Salvar Nota</button>
+        <span id="status-msg" class="status"></span>
+        
+        <button onclick="downloadTxt()" class="btn btn-secondary">Exportar para .TXT</button>
     </div>
+
+    <script>
+        // Tenta pegar o ID da mídia da URL do Jellyfin automaticamente
+        const params = new URLSearchParams(window.location.search);
+        let itemId = params.get('id') || "geral"; 
+
+        const textArea = document.getElementById('note-text');
+        const statusMsg = document.getElementById('status-msg');
+
+        // 1. Carregar nota existente ao abrir
+        async function loadNote() {
+            try {
+                const response = await fetch(`/MediaNotes/${itemId}`);
+                const data = await response.json();
+                if (data.text) textArea.value = data.text;
+            } catch (e) { console.error("Erro ao carregar:", e); }
+        }
+
+        // 2. Salvar nota
+        document.getElementById('save-btn').onclick = async () => {
+            statusMsg.innerText = "Salvando...";
+            try {
+                const response = await fetch(`/MediaNotes/${itemId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: textArea.value })
+                });
+                if (response.ok) {
+                    statusMsg.innerText = "Salvo com sucesso! " + new Date().toLocaleTimeString();
+                }
+            } catch (e) {
+                statusMsg.innerText = "Erro ao salvar!";
+            }
+        };
+
+        // 3. Exportar TXT
+        function downloadTxt() {
+            const blob = new Blob([textArea.value], { type: 'text/plain' });
+            const anchor = document.createElement('a');
+            anchor.download = `nota_${itemId}.txt`;
+            anchor.href = window.URL.createObjectURL(blob);
+            anchor.click();
+        }
+
+        // Inicializar
+        loadNote();
+    </script>
 </body>
 </html>
