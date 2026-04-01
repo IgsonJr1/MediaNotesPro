@@ -3,6 +3,7 @@ using System.IO;
 using Microsoft.AspNetCore.Mvc;
 using MediaBrowser.Controller.Library;
 using Microsoft.Extensions.Logging;
+using System.Net;
 
 namespace MediaNotesPro.Api
 {
@@ -19,16 +20,24 @@ namespace MediaNotesPro.Api
             _logger = logger;
         }
 
+        private string GetSafePath(string userName, string mediaId)
+        {
+            var safeUser = string.Join("_", userName.Split(Path.GetInvalidFileNameChars()));
+            var safeMedia = string.Join("_", mediaId.Split(Path.GetInvalidFileNameChars()));
+            
+            var programData = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
+            var path = Path.Combine(programData, "Jellyfin", "Server", "data", "MediaNotesData", safeUser);
+            
+            if (!Directory.Exists(path)) Directory.CreateDirectory(path);
+            return Path.Combine(path, $"{safeMedia}.txt");
+        }
+
         [HttpGet("{userName}/{mediaId}")]
         public ActionResult GetNotes([FromRoute] string userName, [FromRoute] string mediaId)
         {
             try
             {
-                var safeUserName = string.IsNullOrWhiteSpace(userName) || userName == "undefined" ? "Geral" : userName;
-                var programData = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
-                var userPath = Path.Combine(programData, "Jellyfin", "Server", "data", "MediaNotesData", safeUserName);
-                var filePath = Path.Combine(userPath, $"{mediaId}.txt");
-
+                var filePath = GetSafePath(userName, mediaId);
                 if (!System.IO.File.Exists(filePath)) return Ok(new { text = "" });
                 return Ok(new { text = System.IO.File.ReadAllText(filePath) });
             }
@@ -43,15 +52,9 @@ namespace MediaNotesPro.Api
         {
             try
             {
-                var safeUserName = string.IsNullOrWhiteSpace(userName) || userName == "undefined" ? "Geral" : userName;
-                var programData = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
-                var userPath = Path.Combine(programData, "Jellyfin", "Server", "data", "MediaNotesData", safeUserName);
-
-                if (!Directory.Exists(userPath)) Directory.CreateDirectory(userPath);
-                var filePath = Path.Combine(userPath, $"{mediaId}.txt");
-
-                System.IO.File.WriteAllText(filePath, request.Text);
-                return Ok(new { message = "Salvo!" });
+                var filePath = GetSafePath(userName, mediaId);
+                System.IO.File.WriteAllText(filePath, request.Text ?? "");
+                return Ok(new { message = "Salvo com sucesso" });
             }
             catch (Exception ex)
             {
@@ -60,5 +63,8 @@ namespace MediaNotesPro.Api
         }
     }
 
-    public class NoteRequest { public string Text { get; set; } }
+    public class NoteRequest
+    {
+        public string Text { get; set; }
+    }
 }
