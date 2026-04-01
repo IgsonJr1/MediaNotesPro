@@ -19,15 +19,15 @@ namespace MediaNotesPro.Api
             _logger = logger;
         }
 
-        [HttpGet("{userName}/{mediaName}")]
-        public ActionResult GetNotes([FromRoute] string userName, [FromRoute] string mediaName)
+        [HttpGet("{userName}/{mediaId}")]
+        public ActionResult GetNotes([FromRoute] string userName, [FromRoute] string mediaId)
         {
             try
             {
                 var safeUserName = string.IsNullOrWhiteSpace(userName) || userName == "undefined" ? "Geral" : userName;
                 var programData = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
                 var userPath = Path.Combine(programData, "Jellyfin", "Server", "data", "MediaNotesData", safeUserName);
-                var filePath = Path.Combine(userPath, $"{mediaName}.txt");
+                var filePath = Path.Combine(userPath, $"{mediaId}.txt");
 
                 if (!System.IO.File.Exists(filePath)) return Ok(new { text = "" });
                 return Ok(new { text = System.IO.File.ReadAllText(filePath) });
@@ -38,8 +38,8 @@ namespace MediaNotesPro.Api
             }
         }
 
-        [HttpPost("{userName}/{mediaName}")]
-        public ActionResult SaveNote([FromRoute] string userName, [FromRoute] string mediaName, [FromBody] NoteRequest request)
+        [HttpPost("{userName}/{mediaId}")]
+        public ActionResult SaveNote([FromRoute] string userName, [FromRoute] string mediaId, [FromBody] NoteRequest request)
         {
             try
             {
@@ -48,21 +48,17 @@ namespace MediaNotesPro.Api
                 var userPath = Path.Combine(programData, "Jellyfin", "Server", "data", "MediaNotesData", safeUserName);
 
                 if (!Directory.Exists(userPath)) Directory.CreateDirectory(userPath);
-                var filePath = Path.Combine(userPath, $"{mediaName}.txt");
+                var filePath = Path.Combine(userPath, $"{mediaId}.txt");
 
                 System.IO.File.WriteAllText(filePath, request.Text);
-                return Ok(new { message = "Salvo com sucesso!" });
+                return Ok(new { message = "Salvo!" });
             }
             catch (Exception ex)
             {
-                _logger.LogError("Erro ao salvar: {0}", ex.Message);
                 return StatusCode(500, ex.Message);
             }
         }
     }
 
-    public class NoteRequest
-    {
-        public string Text { get; set; }
-    }
+    public class NoteRequest { public string Text { get; set; } }
 }
