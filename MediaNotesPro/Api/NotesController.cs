@@ -64,6 +64,5 @@ namespace MediaNotesPro.Api
     public class NoteRequest
     {
         public string Text { get; set; }
-
     }
 }
