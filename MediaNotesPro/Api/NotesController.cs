@@ -51,7 +51,7 @@ namespace MediaNotesPro.Api
                 var filePath = Path.Combine(userPath, $"{mediaName}.txt");
 
                 System.IO.File.WriteAllText(filePath, request.Text);
-                return Ok(new { message = "Sincronizado!" });
+                return Ok(new { message = "Salvo com sucesso!" });
             }
             catch (Exception ex)
             {
